@@ -16,3 +16,12 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`,
 
 Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root.
 See `docs/agents/domain.md`.
+
+## Folder structure
+
+- `data/trains.csv`: the service's train numbers, one row per
+  number with its valid date range
+  (`train_number,valid_from,valid_to`). Edited by hand.
+- `data/raw/YYYY-MM-DD.json`: the raw archive, one file per trip
+  date, holding the API response unmodified. Written by `fetch`,
+  never edited.
