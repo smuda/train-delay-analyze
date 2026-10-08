@@ -1,0 +1,12 @@
+{
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Repository visibility: PUBLIC on GitHub (smuda/train-delay-analyze). Anything pushed, or posted to issues/PRs, is world-readable.",
+      "Trusted repo: /Users/john/Projects/smuda/train-delay-analyze, remote origin https://github.com/smuda/train-delay-analyze.git.",
+      "Sensitive data: none in the repo yet. Never commit credentials, tokens or .env files, since the repo is public.",
+      "Routine commands: git (status, diff, log, add, commit, switch, merge) and gh issue/pr read and write against smuda/train-delay-analyze. No build toolchain exists yet.",
+      "CI/CD deploy targets: none. No .github/workflows and no deploy pipeline."
+    ]
+  }
+}
