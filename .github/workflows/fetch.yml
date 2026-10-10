@@ -1,0 +1,28 @@
+name: fetch
+
+on:
+  schedule:
+    # 05:00 Swedish summer time, 04:00 winter time; trips are still
+    # complete in the API this soon after the trip date
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 fetch.py
+        env:
+          TRAFIKVERKET_API_KEY: ${{ secrets.TRAFIKVERKET_API_KEY }}
+      - name: Commit new raw trip files
+        run: |
+          git add data/raw
+          git diff --cached --quiet data/raw && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: add raw trip files" -- data/raw
+          git push
