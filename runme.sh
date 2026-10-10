@@ -9,6 +9,6 @@ if [ -f .env ]; then
 fi
 
 .venv/bin/python fetch.py
-git add data/raw 
-git commit -m "chore: add raw trip files"
+git add data/raw
+git diff --cached --quiet data/raw || git commit -m "chore: add raw trip files" -- data/raw
 .venv/bin/python report.py
