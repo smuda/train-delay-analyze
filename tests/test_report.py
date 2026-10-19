@@ -155,4 +155,39 @@ def test_cli(tmp_path):
     )
     assert p.returncode == 0, p.stderr
     assert FULL_SUMMARY in p.stdout
+    assert "Delay gained per stretch" not in p.stdout  # no advertised stops in fixture
     assert png.exists() and png.stat().st_size > 0
+
+
+def stop(activity, loc, adv_minute, late):
+    adv = datetime.fromisoformat(f"2026-10-01T20:{adv_minute:02d}:00+02:00")
+    a = ann(activity, loc, adv=adv.isoformat())
+    a["Advertised"] = True
+    a["TimeAtLocationWithSeconds"] = (adv + timedelta(minutes=late)).isoformat()
+    return a
+
+
+def test_stretches_named_in_route_order(tmp_path):
+    raw, stations = tmp_path / "raw", tmp_path / "stations.csv"
+    stations.write_text("location_signature,name\nSuc,Sundsvall C\nHsd,Härnösand C\n")
+    for name, late in (("2026-10-01", 10), ("2026-10-02", 20)):
+        write_raw(raw, name, [
+            # out of order, and an unadvertised timing point, on purpose
+            stop("Ankomst", "Hsd", 50, late + 2),
+            stop("Avgang", "Suc", 0, 1),
+            ann("Avgang", "Nta", adv="2026-10-01T20:03:00+02:00",
+                actual="2026-10-01T20:30:00+02:00"),
+            stop("Ankomst", "Suc", 0, 0),
+            stop("Avgang", "Hsd", 52, late + 3),
+            stop("Ankomst", "Uå", 59, late + 3),
+        ])
+    r = report.report(raw, tmp_path / "r.png", stations)
+    assert [(s["from"], s["to"]) for s in r["stretches"]] == [
+        ("Sundsvall C", "Sundsvall C"),
+        ("Sundsvall C", "Härnösand C"),
+        ("Härnösand C", "Härnösand C"),
+        ("Härnösand C", "Uå"),  # no name known: falls back to the code
+    ]
+    s = r["stretches"][1]
+    assert s["mean"] == 16.0 and s["max"] == 21.0 and s["trips"] == 2
+    assert r["stretches"][0]["mean"] == 1.0

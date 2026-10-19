@@ -22,6 +22,9 @@ See `docs/agents/domain.md`.
 - `data/trains.csv`: the service's train numbers, one row per
   number with its valid date range
   (`train_number,valid_from,valid_to`). Edited by hand.
+- `data/stations.csv`: station name for each location signature on
+  the route (`location_signature,name`), from Trafikverket's
+  TrainStation data. Edited by hand.
 - `data/raw/YYYY-MM-DD.json`: the raw archive, one file per trip
   date, holding the API response unmodified. Written by `fetch`,
   never edited.

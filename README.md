@@ -19,9 +19,13 @@ delay, not arrived and on time are defined in `CONTEXT.md`.
   and prints a summary line. The chart shows an on-time bar (under
   6 minutes late), a 6 to 15 minute bar, then 15-minute buckets up
   to the latest arrival, plus a not-arrived bar.
+  It also prints the delay gained on each stretch between advertised
+  stops, and while standing at each stop, averaged over all trips.
 
 The service's train numbers and their valid date ranges are in
 `data/trains.csv`, edited by hand.
+Station names for Trafikverket's location codes are in
+`data/stations.csv`, also edited by hand.
 
 ## Setup
 

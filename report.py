@@ -1,5 +1,6 @@
 import argparse
 import bisect
+import csv
 import json
 import statistics
 from datetime import datetime
@@ -35,8 +36,46 @@ def arrival_delay(announcements):
     return None
 
 
-def report(raw_dir: Path, png_path: Path) -> dict:
+def actual_delay(a):
+    """Minutes late at this announcement, or None if it has no actual time."""
+    actual = a.get("TimeAtLocationWithSeconds") or a.get("TimeAtLocation")
+    if a.get("Canceled") or not actual:
+        return None
+    advertised = datetime.fromisoformat(a["AdvertisedTimeAtLocation"])
+    return (datetime.fromisoformat(actual) - advertised).total_seconds() / 60
+
+
+def stretches(announcements):
+    """(from, to, minutes gained) between consecutive advertised stops.
+
+    from == to is the time spent standing at that stop.
+    """
+    stops = sorted(
+        (a for a in announcements if a.get("Advertised") and actual_delay(a) is not None),
+        key=lambda a: (
+            datetime.fromisoformat(a["AdvertisedTimeAtLocation"]),
+            a["ActivityType"] == "Avgang",
+        ),
+    )
+    return [
+        (p["LocationSignature"], c["LocationSignature"], actual_delay(c) - actual_delay(p))
+        for p, c in zip(stops, stops[1:])
+    ]
+
+
+def load_stations(path: Path) -> dict:
+    """Station name by location signature; empty if the file is missing."""
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            return {r["location_signature"]: r["name"] for r in csv.DictReader(f)}
+    except FileNotFoundError:
+        return {}
+
+
+def report(raw_dir: Path, png_path: Path, stations_path: Path = Path("data/stations.csv")) -> dict:
     raw_dir = Path(raw_dir)
+    names = load_stations(stations_path)
+    gained = {}  # (from, to) -> minutes gained per trip, in route order
     delays = []
     dates = []
     not_arrived = 0
@@ -48,6 +87,8 @@ def report(raw_dir: Path, png_path: Path) -> dict:
         if not announcements:
             continue
         dates.append(path.stem)
+        for frm, to, minutes in stretches(announcements):
+            gained.setdefault((frm, to), []).append(minutes)
         delay = arrival_delay(announcements)
         if delay is None:
             not_arrived += 1
@@ -92,6 +133,16 @@ def report(raw_dir: Path, png_path: Path) -> dict:
         "on_time": on_time,
         "median_delay": median,
         "bucket_edges": edges,
+        "stretches": [
+            {
+                "from": names.get(frm, frm),
+                "to": names.get(to, to),
+                "mean": statistics.mean(g),
+                "max": max(g),
+                "trips": len(g),
+            }
+            for (frm, to), g in gained.items()
+        ],
         "buckets": buckets,
         "first_date": first_date,
         "last_date": last_date,
@@ -124,5 +175,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", default="data/raw", type=Path)
     parser.add_argument("--out", default="report.png", type=Path)
+    parser.add_argument("--stations", default="data/stations.csv", type=Path)
     args = parser.parse_args()
-    print(report(args.raw, args.out)["summary"])
+    r = report(args.raw, args.out, args.stations)
+    print(r["summary"])
+    if r["stretches"]:
+        print("\nDelay gained per stretch, minutes (mean, max, trips):")
+        for st in r["stretches"]:
+            where = f"at {st['from']}" if st["from"] == st["to"] else f"{st['from']} to {st['to']}"
+            print(f"  {where:40} {st['mean']:+6.1f} {st['max']:+6.1f} {st['trips']:4}")

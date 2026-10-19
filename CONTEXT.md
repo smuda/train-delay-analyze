@@ -23,10 +23,11 @@ _Avoid_: lateness, delay (unqualified)
 
 ### Delay bucket
 
-A fixed-width interval of arrival delay (initially 15 minutes) used
-to group trips in the delay histogram. Each bucket includes its lower
-edge and excludes its upper: [0, 15), [15, 30), ... Early arrivals
-fall in the first bucket. The last bucket is open-ended (≥ 180 min).
+An interval of arrival delay used to group trips in the delay
+histogram. Each bucket includes its lower edge and excludes its
+upper: [0, 6) is on time, then [6, 15), [15, 30), [30, 45), ...
+Early arrivals fall in the first bucket. The buckets end with the
+one holding the latest arrival.
 _Avoid_: bin, interval
 
 ### Not arrived
@@ -67,3 +68,45 @@ A trip whose arrival delay is under 6 minutes (the official RT+5
 rule: at most 5:59 late at the final station). Early counts as on
 time.
 _Avoid_: punctual, not late
+
+### Location signature
+
+Trafikverket's short code for a station or timing point, used in
+every announcement. Always shown to people by the station's name,
+never by the code. The service's advertised stops, in route order:
+
+| Code | Station        |
+|------|----------------|
+| Cst  | Stockholm C    |
+| Arnc | Arlanda C      |
+| U    | Uppsala C      |
+| Gä   | Gävle C        |
+| Shv  | Söderhamn      |
+| Hkl  | Hudiksvall     |
+| Suc  | Sundsvall C    |
+| Hsd  | Härnösand C    |
+| Krf  | Kramfors       |
+| Ök   | Örnsköldsvik C |
+| Uåö  | Umeå Ö         |
+| Uå   | Umeå C         |
+
+_Avoid_: station code, abbreviation
+
+### Advertised stop
+
+A station where the service stops for passengers, as published in
+the timetable. Other locations in the data are timing points the
+train only passes.
+_Avoid_: station (unqualified), halt
+
+### Stretch
+
+The part of a trip between two consecutive advertised stops, or the
+time spent standing at one advertised stop.
+_Avoid_: segment, leg, section
+
+### Delay gained
+
+How much later the train is at the end of a stretch than at its
+start, in minutes. Negative means the train made up time.
+_Avoid_: lost time, delay (unqualified)
