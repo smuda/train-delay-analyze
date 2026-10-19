@@ -16,8 +16,9 @@ delay, not arrived and on time are defined in `CONTEXT.md`.
   The API keeps data for only about 3 days, so a trip not fetched in
   time is lost for good.
 - `report.py` reads the raw archive offline, writes `report.png`
-  (arrival delay in 15-minute buckets plus a not-arrived bar) and
-  prints a summary line.
+  and prints a summary line. The chart shows an on-time bar (under
+  6 minutes late), a 6 to 15 minute bar, then 15-minute buckets up
+  to the latest arrival, plus a not-arrived bar.
 
 The service's train numbers and their valid date ranges are in
 `data/trains.csv`, edited by hand.

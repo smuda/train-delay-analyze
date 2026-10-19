@@ -1,4 +1,5 @@
 import argparse
+import bisect
 import json
 import statistics
 from datetime import datetime
@@ -11,10 +12,15 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 DESTINATION = "Uå"  # Umeå C location signature
 BUCKET_WIDTH = 15  # minutes
-LAST_EDGE = 180  # last bucket is >= LAST_EDGE
 ON_TIME_LIMIT = 6  # RT+5: on time if delay < 6 min
 
-N_BUCKETS = LAST_EDGE // BUCKET_WIDTH + 1
+
+def bucket_edges(max_delay):
+    """Edges 0, 6, 15, 30, ... up to the first edge above max_delay."""
+    edges = [0, ON_TIME_LIMIT, BUCKET_WIDTH]
+    while edges[-1] <= max_delay:
+        edges.append(edges[-1] + BUCKET_WIDTH)
+    return edges
 
 
 def arrival_delay(announcements):
@@ -31,7 +37,6 @@ def arrival_delay(announcements):
 
 def report(raw_dir: Path, png_path: Path) -> dict:
     raw_dir = Path(raw_dir)
-    buckets = [0] * N_BUCKETS
     delays = []
     dates = []
     not_arrived = 0
@@ -48,9 +53,14 @@ def report(raw_dir: Path, png_path: Path) -> dict:
             not_arrived += 1
             continue
         delays.append(delay)
-        buckets[min(int(max(delay, 0) // BUCKET_WIDTH), LAST_EDGE // BUCKET_WIDTH)] += 1
         if delay < ON_TIME_LIMIT:
             on_time += 1
+
+    edges = bucket_edges(max(delays, default=0))
+    buckets = [0] * (len(edges) - 1)
+    for delay in delays:
+        # early arrivals go in the first bucket
+        buckets[bisect.bisect_right(edges, max(delay, 0)) - 1] += 1
 
     arrived = len(delays)
     trips = arrived + not_arrived
@@ -73,7 +83,7 @@ def report(raw_dir: Path, png_path: Path) -> dict:
             f"Median arrival delay: {median_part}. "
             f"Not arrived: {not_arrived}."
         )
-        _plot(buckets, not_arrived, first_date, last_date, Path(png_path))
+        _plot(edges, buckets, not_arrived, first_date, last_date, Path(png_path))
 
     return {
         "trips": trips,
@@ -81,6 +91,7 @@ def report(raw_dir: Path, png_path: Path) -> dict:
         "not_arrived": not_arrived,
         "on_time": on_time,
         "median_delay": median,
+        "bucket_edges": edges,
         "buckets": buckets,
         "first_date": first_date,
         "last_date": last_date,
@@ -88,15 +99,17 @@ def report(raw_dir: Path, png_path: Path) -> dict:
     }
 
 
-def _plot(buckets, not_arrived, first_date, last_date, png_path):
-    labels = [
-        f"{i * BUCKET_WIDTH}–{(i + 1) * BUCKET_WIDTH}" for i in range(N_BUCKETS - 1)
-    ] + [f"≥{LAST_EDGE}"]
+def _plot(edges, buckets, not_arrived, first_date, last_date, png_path):
+    n = len(buckets)
+    labels = [f"<{ON_TIME_LIMIT} (on time)"] + [
+        f"{lo}–{hi}" for lo, hi in zip(edges[1:-1], edges[2:])
+    ]
     fig, ax = plt.subplots(figsize=(11, 5))
-    ax.bar(range(N_BUCKETS), buckets, color="tab:blue")
+    ax.bar(0, buckets[0], color="tab:green")
+    ax.bar(range(1, n), buckets[1:], color="tab:blue")
     # gap of one slot keeps the not-arrived bar visually separate
-    ax.bar(N_BUCKETS + 1, not_arrived, color="tab:red")
-    ax.set_xticks(list(range(N_BUCKETS)) + [N_BUCKETS + 1])
+    ax.bar(n + 1, not_arrived, color="tab:red")
+    ax.set_xticks(list(range(n)) + [n + 1])
     ax.set_xticklabels(labels + ["Not arrived"], rotation=45, ha="right")
     ax.set_xlabel("Arrival delay at Umeå C (min)")
     ax.set_ylabel("Trips")

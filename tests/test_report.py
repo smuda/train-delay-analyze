@@ -77,9 +77,10 @@ def test_full_set(tmp_path):
     assert r["not_arrived"] == 3
     assert r["on_time"] == 2
     assert r["median_delay"] == 15.0
-    assert len(r["buckets"]) == 13
-    expected = [0] * 13
-    expected[0], expected[1], expected[12] = 2, 2, 1
+    # 200 min stretches the axis to the 195–210 bucket
+    assert r["bucket_edges"] == [0, 6] + list(range(15, 211, 15))
+    expected = [0] * 15
+    expected[0], expected[2], expected[14] = 2, 2, 1
     assert r["buckets"] == expected
     assert r["first_date"] == "2026-10-01"
     assert r["last_date"] == "2026-10-08"
@@ -99,14 +100,26 @@ def test_empty_announcements_not_in_date_range(tmp_path):
 def test_exactly_six_minutes_not_on_time(tmp_path):
     raw = tmp_path / "raw"
     write_trip(raw, "2026-10-01", arrival(at(6)))
-    assert report.report(raw, tmp_path / "r.png")["on_time"] == 0
+    r = report.report(raw, tmp_path / "r.png")
+    assert r["on_time"] == 0
+    assert r["buckets"] == [0, 1]
 
 
 def test_just_under_six_minutes_on_time(tmp_path):
     raw = tmp_path / "raw"
     write_trip(raw, "2026-10-01", arrival(at(5, 59)))
     # 23:39:59 vs advertised 23:34:00 is 5.98 min
-    assert report.report(raw, tmp_path / "r.png")["on_time"] == 1
+    r = report.report(raw, tmp_path / "r.png")
+    assert r["on_time"] == 1
+    assert r["buckets"] == [1, 0]
+
+
+def test_axis_ends_after_highest_delay(tmp_path):
+    raw = tmp_path / "raw"
+    write_trip(raw, "2026-10-01", arrival(at(59)))
+    r = report.report(raw, tmp_path / "r.png")
+    assert r["bucket_edges"] == [0, 6, 15, 30, 45, 60]
+    assert r["buckets"] == [0, 0, 0, 0, 1]
 
 
 def test_only_not_arrived(tmp_path):
@@ -115,7 +128,7 @@ def test_only_not_arrived(tmp_path):
     r = report.report(raw, tmp_path / "r.png")
     assert r["trips"] == 1 and r["arrived"] == 0 and r["not_arrived"] == 1
     assert r["median_delay"] is None
-    assert r["buckets"] == [0] * 13
+    assert r["buckets"] == [0, 0]
     assert "Median arrival delay: n/a over 0 arrived trips." in r["summary"]
 
 
@@ -127,7 +140,7 @@ def test_empty_dir_no_trips_no_png(tmp_path):
     assert r["on_time"] == 0
     assert r["median_delay"] is None
     assert r["first_date"] is None and r["last_date"] is None
-    assert r["buckets"] == [0] * 13
+    assert r["buckets"] == [0, 0]
     assert r["summary"] == f"No trips in {raw}."
     assert not png.exists()
 
