@@ -31,10 +31,9 @@ The service's train numbers and their valid date ranges are in
 Station names for Trafikverket's location codes are in
 `data/stations.csv`, also edited by hand.
 The names come from Trafikverket's TrainStation data
-(`AdvertisedLocationName` by `LocationSignature`). Query it with
-schema version 1.4, since 1.5 rejects `LocationSignature`; fetching
-the whole list without a filter works. When a report shows a code
-instead of a name, add that row.
+(`AdvertisedLocationName` by `LocationSignature`). Download the
+full list with schema version 1.4 (1.5 rejected the request). When a
+report shows a code instead of a name, add that row.
 
 ## Setup
 
