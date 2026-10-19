@@ -15,6 +15,10 @@ delay, not arrived and on time are defined in `CONTEXT.md`.
   `fetch.py` daily at 03:00 UTC and commits new raw files to `main`.
   The API keeps data for only about 3 days, so a trip not fetched in
   time is lost for good.
+  GitHub starts scheduled runs late, so far between 07:30 and 10:10
+  UTC; a run not there by morning has usually not been skipped. The
+  margin before trips start to disappear from the API is smaller
+  than the schedule suggests.
 - `report.py` reads the raw archive offline, writes `report.png`
   and prints a summary line. The chart shows an on-time bar (under
   6 minutes late), a 6 to 15 minute bar, then 15-minute buckets up
@@ -26,6 +30,11 @@ The service's train numbers and their valid date ranges are in
 `data/trains.csv`, edited by hand.
 Station names for Trafikverket's location codes are in
 `data/stations.csv`, also edited by hand.
+The names come from Trafikverket's TrainStation data
+(`AdvertisedLocationName` by `LocationSignature`). Query it with
+schema version 1.4, since 1.5 rejects `LocationSignature`; fetching
+the whole list without a filter works. When a report shows a code
+instead of a name, add that row.
 
 ## Setup
 
